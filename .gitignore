@@ -1,0 +1,35 @@
+lib-cov
+*.seed
+*.log
+*.csv
+*.dat
+*.out
+*.pid
+*.gz
+
+pids
+logs
+results
+
+# gulp recipes
+.recipe
+.reciperc
+!config/.reciperc
+
+# build
+dist
+
+# IntelliJ resources
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# mac
+.DS_Store
+
+# node
+node_modules/
+npm-debug.log
+.env
+.npmrc
