@@ -1,6 +1,6 @@
 {
   "name": "gulp-moltres",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Gulp plugin for moltres",
   "main": "./index.js",
   "dependencies": {

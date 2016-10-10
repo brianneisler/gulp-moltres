@@ -26,28 +26,36 @@ const sources = {
     '**/*.js'
   ],
   tests: [
-    '**/__tests__/*.js',
-    '!.git/**',
-    '!node_modules/**',
-    '!dist/**'
+    '**/__tests__/*.js'
   ]
 }
 
 const ignores = {
-  babel: [
+  default: [
     '!.git',
     '!.git/**',
     '!node_modules',
     '!node_modules/**',
     '!dist',
-    '!dist/**',
-    '!**/tests/**'
-  ],
-  lint: [
-    '!.git/**',
-    '!node_modules/**',
     '!dist/**'
+  ],
+  babel: [
+    '!**/tests/**'
   ]
+}
+
+function getIgnores(type) {
+  return _.compact(_.concat(
+    ignores.default,
+    _.get(ignores, type)
+  ))
+}
+
+function getSources(type) {
+  return _.compact(_.concat(
+    _.get(sources, type),
+    getIgnores(type)
+  ))
 }
 
 
@@ -59,12 +67,12 @@ gulp.task('default', ['prod'])
 
 gulp.task('prod', ['babel'])
 
-gulp.task('dev', ['babel', 'lint', 'babel-watch', 'lint-watch'])
+gulp.task('dev', ['babel-watch', 'lint-watch'])
 
 gulp.task('test', ['lint', 'mocha'])
 
-gulp.task('babel', function() {
-  return gulp.src(_.concat(sources.babel, ignores.babel))
+gulp.task('babel', () => {
+  return gulp.src(getSources('babel'))
     .pipe(sourcemaps.init({
       loadMaps: true
     }))
@@ -80,7 +88,7 @@ gulp.task('babel', function() {
 })
 
 gulp.task('lint', () => {
-  return gulp.src(_.concat(sources.lint, ignores.lint))
+  return gulp.src(getSources('lint'))
   .pipe(eslint())
   .pipe(eslint.formatEach())
   .pipe(eslint.failOnError())
@@ -90,7 +98,7 @@ gulp.task('lint', () => {
 })
 
 gulp.task('mocha', () => {
-  return gulp.src(sources.tests)
+  return gulp.src(getSources('tests'))
   .pipe(mocha({
     compilers: {
       js: babelRegister
@@ -115,7 +123,7 @@ gulp.task('cleanse', ['clean'], () => {
 // Gulp Watchers
 //-------------------------------------------------------------------------------
 
-gulp.task('babel-watch', () => {
+gulp.task('babel-watch', ['babel'], () => {
   const sourceMapsInit = sourcemaps.init({
     loadMaps: true
   })
@@ -127,7 +135,7 @@ gulp.task('babel-watch', () => {
   const dest = gulp.dest('./dist')
   gulp.watch(sources.babel, (event) => {
     if (event.type !== 'deleted') {
-      gulp.src(_.concat([event.path], ignores.babel))
+      gulp.src(_.concat([event.path], getIgnores('babel')))
         .pipe(sourceMapsInit, {end: false})
         .pipe(babelPipe, {end: false})
         .pipe(sourceMapsWrite, {end: false})
@@ -141,13 +149,13 @@ gulp.task('babel-watch', () => {
   })
 })
 
-gulp.task('lint-watch', () => {
+gulp.task('lint-watch', ['lint'], () => {
   const lintAndPrint = eslint()
   lintAndPrint.pipe(eslint.formatEach())
 
   return gulp.watch(sources.lint, (event) => {
     if (event.type !== 'deleted') {
-      gulp.src(_.concat([event.path], ignores.lint))
+      gulp.src(_.concat([event.path], getIgnores('lint')))
         .pipe(lintAndPrint, {end: false})
         .on('error', (error) => {
           util.log(error)
