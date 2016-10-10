@@ -1,13 +1,10 @@
 import _ from 'mudash'
 import ignore from 'ignore'
 import { obj } from 'through2'
-import { File, log, PluginError } from 'gulp-util'
-import { Observable } from 'rx-lite'
+import { File, PluginError } from 'gulp-util'
 import { basename, dirname, extname, relative, resolve, sep } from 'path'
 
-const { range, timer, just, fromNodeCallback } = Observable
-const { pow } = Math
-const { parse, stringify } = JSON
+const { parse } = JSON
 
 const PLUGIN_NAME = 'gulp-moltres'
 
@@ -31,7 +28,6 @@ function install(options) {
         scanJson(file)
       }
     } catch (err) {
-      console.log('err:', err, ' file.path:', file.path)
       this.emit('error', new PluginError(PLUGIN_NAME, err, {
         fileName: file.path,
         showProperties: false
@@ -43,8 +39,6 @@ function install(options) {
 
   function doInstall(done) {
     try {
-      console.log('moduleMap:', moduleMap)
-      console.log('targets:', targets)
       _.each(targets, (target) => {
         installMoltres(target, this)
       })
@@ -61,28 +55,27 @@ function install(options) {
     if (data.dependencies) {
       installDependencies(data.dependencies)
     }
-    console.log('installedModules:', installedModules)
     _.each(installedModules, (installedModule) => {
       const { data: { name, type } } = installedModule
       const installedPath = dirname(installedModule.path)
       const targetPath = dirname(target.path)
-      const modulePath = resolve(targetPath, `node_modules/${type}/${name}`)
+      const modulePath = resolve(targetPath, `node_modules/@moltres/${type}/${name}`)
       const moduleContents = buildModuleContents(installedPath, modulePath)
       const moduleFile = new File({
         cwd: installedModule.cwd,
         base: installedModule.base,
-        path: resolve(modulePath, 'index.js'),
+        path: relative(installedModule.cwd, resolve(modulePath, 'index.js')),
         contents: new Buffer(moduleContents),
         stat: {
-          isFile: function () { return true; },
-          isDirectory: function () { return false; },
-          isBlockDevice: function () { return false; },
-          isCharacterDevice: function () { return false; },
-          isSymbolicLink: function () { return false; },
-          isFIFO: function () { return false; },
-          isSocket: function () { return false; }
+          isFile: function () { return true },
+          isDirectory: function () { return false },
+          isBlockDevice: function () { return false },
+          isCharacterDevice: function () { return false },
+          isSymbolicLink: function () { return false },
+          isFIFO: function () { return false },
+          isSocket: function () { return false }
         }
-      });
+      })
       stream.push(moduleFile)
     })
 
@@ -98,7 +91,7 @@ function install(options) {
 
     function installModule(namespace, type, name) {
       if (!_.has(installedModules, moduleKey(namespace, type, name))) {
-        const module = _.get(moduleMap, modulePath(namespace, type, name))
+        const module = _.get(moduleMap, modulePropPath(namespace, type, name))
         if (module) {
           installedModules = _.assoc(installedModules, {
             [moduleKey(namespace, type, name)]: module
@@ -132,13 +125,11 @@ function install(options) {
         if (namespace === 'moltres') {
           file.moltres = module
           moduleMap = _.assoc(moduleMap, {
-            [modulePath(namespace, type, name)]: module
+            [modulePropPath(namespace, type, name)]: module
           })
         }
       }
-    } catch(error) {
-      //console.log('error:', error)
-    }
+    } catch(error) {} //eslint-disable-line no-empty
   }
 
   return obj(doScan, doInstall)
@@ -149,14 +140,14 @@ function buildModuleContents(installedPath, modulePath) {
 }
 
 function unixStylePath(filePath) {
-  return filePath.split(sep).join('/');
+  return filePath.split(sep).join('/')
 }
 
 function moduleKey(namespace, type, name) {
   return `${namespace}:${type}:${name}`
 }
 
-function modulePath(namespace, type, name) {
+function modulePropPath(namespace, type, name) {
   return `${namespace}.${type}.${name}`
 }
 

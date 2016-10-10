@@ -2,6 +2,7 @@
 // Imports
 //-------------------------------------------------------------------------------
 
+import _ from 'mudash'
 import gulp from 'gulp'
 import babel from 'gulp-babel'
 import eslint from 'gulp-eslint'
@@ -19,16 +20,31 @@ import path from 'path'
 
 const sources = {
   babel: [
-    'src/**',
-    '!**/tests/**'
+    'src/**'
   ],
   lint: [
-    '**/*.js',
-    '!node_modules/**',
-    '!dist/**'
+    '**/*.js'
   ],
   tests: [
     '**/__tests__/*.js',
+    '!.git/**',
+    '!node_modules/**',
+    '!dist/**'
+  ]
+}
+
+const ignores = {
+  babel: [
+    '!.git',
+    '!.git/**',
+    '!node_modules',
+    '!node_modules/**',
+    '!dist',
+    '!dist/**',
+    '!**/tests/**'
+  ],
+  lint: [
+    '!.git/**',
     '!node_modules/**',
     '!dist/**'
   ]
@@ -48,7 +64,7 @@ gulp.task('dev', ['babel', 'lint', 'babel-watch', 'lint-watch'])
 gulp.task('test', ['lint', 'mocha'])
 
 gulp.task('babel', function() {
-  return gulp.src(sources.babel)
+  return gulp.src(_.concat(sources.babel, ignores.babel))
     .pipe(sourcemaps.init({
       loadMaps: true
     }))
@@ -64,7 +80,7 @@ gulp.task('babel', function() {
 })
 
 gulp.task('lint', () => {
-  return gulp.src(sources.lint)
+  return gulp.src(_.concat(sources.lint, ignores.lint))
   .pipe(eslint())
   .pipe(eslint.formatEach())
   .pipe(eslint.failOnError())
@@ -111,7 +127,7 @@ gulp.task('babel-watch', () => {
   const dest = gulp.dest('./dist')
   gulp.watch(sources.babel, (event) => {
     if (event.type !== 'deleted') {
-      gulp.src(event.path)
+      gulp.src(_.concat([event.path], ignores.babel))
         .pipe(sourceMapsInit, {end: false})
         .pipe(babelPipe, {end: false})
         .pipe(sourceMapsWrite, {end: false})
@@ -131,7 +147,7 @@ gulp.task('lint-watch', () => {
 
   return gulp.watch(sources.lint, (event) => {
     if (event.type !== 'deleted') {
-      gulp.src(event.path)
+      gulp.src(_.concat([event.path], ignores.lint))
         .pipe(lintAndPrint, {end: false})
         .on('error', (error) => {
           util.log(error)
